@@ -7,13 +7,13 @@
 uint8_t broadcastAddress[] = {0x78, 0xE3, 0x6D, 0x11, 0xE3, 0x8C};
 
 // Reading to be sent
-int pot_reading;
+float pot_reading;
 
 // If sending data was succesful
 bool success;
 
 typedef struct struct_message {
-    int pot;
+    float pot;
 };
 
 struct_message readings;
@@ -69,7 +69,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   pot_reading = analogRead(POT);
 
-  readings.pot = pot_reading;
+  readings.pot = pot_reading / 4095 * 3.3;
 
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &readings, sizeof(readings));
 

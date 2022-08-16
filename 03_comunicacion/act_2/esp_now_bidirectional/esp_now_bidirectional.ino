@@ -4,7 +4,7 @@
 #define LED 2
 #define POT 36
 
-uint8_t broadcastAddress[] = {0x30, 0xC6, 0xF7, 0x2F, 0xA0, 0x58};
+uint8_t broadcastAddress[] = {0x30, 0xC6, 0xF7, 0x2F, 0x0A, 0x58};
 
 // Reading to be sent
 int pot_reading;
@@ -38,6 +38,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   Serial.print("Bytes received: ");
   Serial.println(len);
   incoming_pot = incoming_readings.pot;
+  
   readings.pot = incoming_pot;
 
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &readings, sizeof(readings));
@@ -90,5 +91,4 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  delay(1000);
 }
