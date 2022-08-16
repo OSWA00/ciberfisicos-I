@@ -2,78 +2,70 @@ clear
 close all
 clc
 
-% Define a set of waypoints for the desired path for the robot
-path = [2.00    1.00;
-        1.25    1.75;
-        5.25    8.25;
-        7.25    8.75;
-        11.75   10.75;
-        12.00   10.00];
+% Simulation parameters
+time = 0;
+time_final = 5;
+time_delta = 0.01;
 
-robotInitialLocation = path(1,:);
-robotGoal = path(end,:);
+iters = (time_final - time) / time_delta;
 
-initialOrientation = 0;
+trajectory = NaN(iters, 3);
 
-robotCurrentPose = [robotInitialLocation initialOrientation]';
+% Robot parameters
+robot_length = 0.2;
 
-robot = differentialDriveKinematics( ...
-    "TrackWidth", 1, ...
-    "VehicleInputs",...
-    "VehicleSpeedHeadingRate");
+% Proportional control parameters
+kt = 10;
+kr = 10;
 
-controller = controllerPurePursuit;
-controller.Waypoints = path;
-controller.DesiredLinearVelocity = 0.5;
-controller.MaxAngularVelocity = 2;
-controller.LookaheadDistance = 0.7;
+% Pose (x, y, theta)
+pose = [0, 0 , deg2rad(45)];
 
-goalRadius = 0.1;
-distanceToGoal = norm(robotInitialLocation - robotGoal);
+% Pose desired (x, y, theta)
+pose_desired = [1, 0.7, deg2rad(45)];
 
-% Initialize the simulation loop
-sampleTime = 0.1;
-vizRate = rateControl(1/sampleTime);
+for i = 1:iters
 
-% Initialize the figure
-figure
+    % Save current pose
+    trajectory(i,:) = pose;
 
-% Determine vehicle frame size to most closely represent vehicle with plotTransforms
-frameSize = robot.TrackWidth/0.8;
+    % Update error (x, y, theta)
+    error = pose - pose_desired;
 
-while( distanceToGoal > goalRadius )
-    
-    % Compute the controller outputs, i.e., the inputs to the robot
-    [v, omega] = controller(robotCurrentPose);
+    % Control
+    velocity = kt * sqrt(error(1)^2 + error(2)^2);
+    omega = -kr * error(3);
 
-    % Generate signal disturbance
-    disturbance = randi([1, 5]);
-    
-    % Get the robot's velocity using controller inputs
-    vel = derivative(robot, robotCurrentPose, [v omega]);
-    
-    % Update the current pose
-    robotCurrentPose = robotCurrentPose + vel*sampleTime; 
-    
-    % Re-compute the distance to the goal
-    distanceToGoal = norm(robotCurrentPose(1:2) - robotGoal(:));
-    
-    % Update the plot
-    hold off
-    
-    % Plot path each instance so that it stays persistent while robot mesh
-    % moves
-    plot(path(:,1), path(:,2),"k--d")
-    hold all
-    
-    % Plot the path of the robot as a set of transforms
-    plotTrVec = [robotCurrentPose(1:2); 0];
-    plotRot = axang2quat([0 0 1 robotCurrentPose(3)]);
-    plotTransforms(plotTrVec', plotRot, "MeshFilePath", "groundvehicle.stl", "Parent", gca, "View","2D", "FrameSize", frameSize);
-    light;
-    xlim([0 13])
-    ylim([0 13])
-    
-    waitfor(vizRate);
+    % Control saturation
+    if velocity >= 1
+        v = 1;
+    end
+
+    if omega >= pi/2
+        omega = pi / 2;
+    end
+
+    if omega <= -pi/2
+        omega = -pi/2;
+    end
+
+    % Kinematics
+    velocity_right = velocity + 0.5 * robot_length * omega;
+    velocity_left = velocity - 0.5 * robot_length * omega;
+
+    velocity = (velocity_right + velocity_left) / 2;
+    omega = (velocity_right - velocity_left) / robot_length;
+
+    % Pose dt
+    pose_dot = [...
+        velocity * cos(pose(3)), ...
+        velocity * sin(pose(3)), ...
+        omega];
+
+    % Update pose
+    pose = pose + pose_dot * time_delta;
 end
 
+i = 1;
+figure(i);
+scatter(trajectory(:, 1), trajectory(:, 2));
