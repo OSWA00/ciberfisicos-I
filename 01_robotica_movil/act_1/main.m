@@ -28,3 +28,16 @@ ylabel("Y position");
 title("Bycicle robot simulation");
 
 % Out-phase X
+x_out_phase = x_vec;
+sample = length(x_vec);
+time = 1:1:20;
+time_out_phase = time + 1.5;
+
+figure(6)
+scatter(time, x_out_phase);
+hold on;
+scatter(time_out_phase, x_out_phase);
+grid on;
+legend("Ideal X", "Outphase X");
+xlabel("Time")
+ylabel("X position")
