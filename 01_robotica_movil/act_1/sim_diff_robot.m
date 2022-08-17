@@ -19,10 +19,10 @@ kt = 10;
 kr = 10;
 
 % Pose (x, y, theta)
-pose = [0, 0 , deg2rad(45)];
+pose = [0, 0 , 0];
 
 % Pose desired (x, y, theta)
-pose_desired = [1, 0.7, deg2rad(45)];
+pose_desired = [1, 0.7, 0];
 
 for i = 1:iters
 
@@ -30,6 +30,7 @@ for i = 1:iters
     trajectory(i,:) = pose;
 
     % Update error (x, y, theta)
+    pose(3) = atan2(pose_desired(2) - pose(2), pose_desired(1) - pose_desired(1));
     error = pose - pose_desired;
 
     % Control
