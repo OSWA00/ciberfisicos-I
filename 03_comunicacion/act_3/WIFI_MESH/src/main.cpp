@@ -23,7 +23,10 @@ void sendMessage()
 #endif
   msg["header"] = "Message_from_server";
   msg["From_id"] = mesh.getNodeId();
+  msg["To_id"] = 4147054341;
   msg["body"] = "Hello World";
+  msg["ack"] = 0;
+
 
   String str;
 #if ARDUINOJSON_VERSION_MAJOR == 6
@@ -31,14 +34,18 @@ void sendMessage()
 #else
   msg.printTo(str);
 #endif
-  mesh.sendBroadcast(str);
+  bool success = mesh.sendBroadcast(str);
+  // uint32_t client_id = 4147054341;
+  // bool success = mesh.sendSingle(client_id, str);
 
-#if ARDUINOJSON_VERSION_MAJOR == 6
-  serializeJson(msg, Serial);
-#else
-  msg.printTo(Serial);
-#endif
-  Serial.printf("\n");
+  if (success)
+  {
+    Serial.println("Message delivered");
+  }
+  else
+  {
+    Serial.println("Message not delivered");
+  }
 }
 
 // Needed for painless library
