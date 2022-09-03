@@ -27,7 +27,6 @@ void sendMessage()
   msg["body"] = "Hello World";
   msg["ack"] = 0;
 
-
   String str;
 #if ARDUINOJSON_VERSION_MAJOR == 6
   serializeJson(msg, str);
