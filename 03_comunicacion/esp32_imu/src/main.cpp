@@ -1,18 +1,18 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
+// #include <WiFi.h>
+// #include <PubSubClient.h>
 #include <IMU.h>
 
 #define DT 0.02
 #define AA 0.97
 #define G_GAIN 0.070
 
-#define SSID "equipo_1"
-#define PASSWORD "password"
-#define MQTT_SERVER "YOUR_MQTT_BROKER_IP_ADDRESS"
+// #define SSID "equipo_1"
+// #define PASSWORD "password"
+// #define MQTT_SERVER "YOUR_MQTT_BROKER_IP_ADDRESS"
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+// WiFiClient espClient;
+// PubSubClient client(espClient);
 
 byte buff[6];
 int accRaw[3];
@@ -31,23 +31,25 @@ float CFangleY = 0.0;
 
 unsigned long startTime;
 
-void initWiFi();
-void callback(char *topic, byte *message, unsigned int length);
-void initMQTT();
+// void initWiFi();
+// void callback(char *topic, byte *message, unsigned int length);
+// void initMQTT();
 
 void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  initWiFi();
-  initMQTT();
-  delay(500);
-  detectIMU();
-  enableIMU();
+
+  // initWiFi();
+  // initMQTT();
+
+  enableIMU(); // Enable I2C IMU
+  Serial.println("Success");
 }
 
 void loop()
 {
+
   // put your main code here, to run repeatedly:
   startTime = millis();
 
@@ -56,6 +58,8 @@ void loop()
   accRaw[0] = (int)(buff[0] | (buff[1] << 8));
   accRaw[1] = (int)(buff[2] | (buff[3] << 8));
   accRaw[2] = (int)(buff[4] | (buff[5] << 8));
+
+  Serial.println("Read Acc");
 
   readMAG(buff);
   magRaw[0] = (int)(buff[0] | (buff[1] << 8));
@@ -126,36 +130,36 @@ void loop()
   Serial.println(millis() - startTime);
 }
 
-void initWiFi()
-{
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, PASSWORD);
-  Serial.print("Connecting to WiFi ..");
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print('.');
-    delay(1000);
-  }
-  Serial.println(WiFi.localIP());
-}
+// void initWiFi()
+// {
+//   WiFi.mode(WIFI_STA);
+//   WiFi.begin(SSID, PASSWORD);
+//   Serial.print("Connecting to WiFi ..");
+//   while (WiFi.status() != WL_CONNECTED)
+//   {
+//     Serial.print('.');
+//     delay(1000);
+//   }
+//   Serial.println(WiFi.localIP());
+// }
 
-void initMQTT()
-{
-  client.setServer(MQTT_SERVER, 1883);
-  client.setCallback(callback);
-}
+// void initMQTT()
+// {
+//   client.setServer(MQTT_SERVER, 1883);
+//   client.setCallback(callback);
+// }
 
-void callback(char *topic, byte *message, unsigned int length)
-{
-  Serial.print("Message arrived on topic: ");
-  Serial.print(topic);
-  Serial.print(". Message: ");
-  String messageTemp;
+// void callback(char *topic, byte *message, unsigned int length)
+// {
+//   Serial.print("Message arrived on topic: ");
+//   Serial.print(topic);
+//   Serial.print(". Message: ");
+//   String messageTemp;
 
-  for (int i = 0; i < length; i++)
-  {
-    Serial.print((char)message[i]);
-    messageTemp += (char)message[i];
-  }
-  Serial.println();
-}
+//   for (int i = 0; i < length; i++)
+//   {
+//     Serial.print((char)message[i]);
+//     messageTemp += (char)message[i];
+//   }
+//   Serial.println();
+// }

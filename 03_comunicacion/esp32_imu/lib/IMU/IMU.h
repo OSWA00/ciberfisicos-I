@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
-void detectIMU();
-void enableIMU();
+void enableIMU(int sda = 21, int scl = 22);
 void readACC(byte buff[]);
 void readMAG(byte buff[]);
 void readGYR(byte buff[]);
