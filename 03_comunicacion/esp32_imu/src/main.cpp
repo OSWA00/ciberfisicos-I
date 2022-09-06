@@ -62,7 +62,7 @@ void setup()
   initWiFi();
   initMQTT();
 
-  pinMode(LEDPIN, OUTPUT);
+  pinMode(2, OUTPUT); // Set led as output
 
   enableIMU(); // Enable I2C IMU
 }
@@ -201,11 +201,11 @@ void callback(char *topic, byte *message, unsigned int length)
   }
   Serial.println();
 
-  if (messageTemp == "0")
+  if (messageTemp == String("0"))
   {
     digitalWrite(LEDPIN, HIGH);
   }
-  else if (messageTemp == "1")
+  else if (messageTemp == String("1"))
   {
     digitalWrite(LEDPIN, LOW);
   }
@@ -213,7 +213,7 @@ void callback(char *topic, byte *message, unsigned int length)
 
 float kalmanFilterX(float accAngle, float gyroRate)
 {
-  float y, S;
+  digitalWrite(LEDPIN, HIGH);
   float K_0, K_1;
 
   KFangleX += DT * (gyroRate - x_bias);
