@@ -1,5 +1,5 @@
 #include <Arduino.h>
-// #include <WiFi.h>
+#include <WiFi.h>
 // #include <PubSubClient.h>
 #include <IMU.h>
 
@@ -23,8 +23,8 @@ float KFangleY = 0.0;
 float kalmanFilterX(float accAngle, float gyroRate);
 float kalmanFilterY(float accAngle, float gyroRate);
 
-// #define SSID "equipo_1"
-// #define PASSWORD "password"
+#define SSID "equipo_1"
+#define PASSWORD "password"
 // #define MQTT_SERVER "YOUR_MQTT_BROKER_IP_ADDRESS"
 
 // WiFiClient espClient;
@@ -47,7 +47,7 @@ float CFangleY = 0.0;
 
 unsigned long startTime;
 
-// void initWiFi();
+void initWiFi();
 // void callback(char *topic, byte *message, unsigned int length);
 // void initMQTT();
 
@@ -56,7 +56,7 @@ void setup()
   // put your setup code here, to run once:
   Serial.begin(115200);
 
-  // initWiFi();
+  initWiFi();
   // initMQTT();
 
   enableIMU(); // Enable I2C IMU
@@ -108,15 +108,15 @@ void loop()
   float kalmanX = kalmanFilterX(AccXangle, rate_gyr_x);
   float kalmanY = kalmanFilterY(AccYangle, rate_gyr_y);
 
-  Serial.print("Kalman X: ");
+  Serial.print("CFangleX: ");
   Serial.println(kalmanX);
 
-  Serial.print("Kalman Y: ");
+  Serial.print("CFangleY: ");
   Serial.println(kalmanY);
 
   // Complementary filter used to combine the accelerometer and gyro values.
-  CFangleX = AA * (CFangleX + rate_gyr_x * DT) + (1 - AA) * AccXangle;
-  CFangleY = AA * (CFangleY + rate_gyr_y * DT) + (1 - AA) * AccYangle;
+  // CFangleX = AA * (CFangleX + rate_gyr_x * DT) + (1 - AA) * AccXangle;
+  // CFangleY = AA * (CFangleY + rate_gyr_y * DT) + (1 - AA) * AccYangle;
 
   // Compute heading
   float heading = 180 * atan2(magRaw[1], magRaw[0]) / M_PI;
@@ -146,45 +146,27 @@ void loop()
 
   printf("Compensated  Heading %7.3f  \n", heading);
 
-  // Serial.print("#AccX\t");
-  // Serial.print(AccXangle);
-  // Serial.print("\t###  AccY  ");
-  // Serial.print(AccYangle);
 
-  // Serial.print("  ###  GyrX\t");
-  // Serial.print(gyroXangle);
-  // Serial.print("  ###  GyrY  \t");
-  // Serial.print(gyroYangle);
-  // Serial.print("   ###  GyrZ\t");
-  // Serial.print(gyroZangle);
-  // Serial.print("     ######    CFangleX\t");
-  // Serial.print(CFangleX);
-  // Serial.print("   ######  CFangleY   \t");
-  // Serial.print(CFangleY);
-  // Serial.print("   ######  heading   \t");
-  // Serial.print(heading);
-  // Serial.print("    --Loop Time--\t");
 
   // Each loop should be at least 20ms.
   while (millis() - startTime < (DT * 1000))
   {
     delay(1);
   }
-  // Serial.println(millis() - startTime);
 }
 
-// void initWiFi()
-// {
-//   WiFi.mode(WIFI_STA);
-//   WiFi.begin(SSID, PASSWORD);
-//   Serial.print("Connecting to WiFi ..");
-//   while (WiFi.status() != WL_CONNECTED)
-//   {
-//     Serial.print('.');
-//     delay(1000);
-//   }
-//   Serial.println(WiFi.localIP());
-// }
+void initWiFi()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASSWORD);
+  Serial.print("Connecting to WiFi ..");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print('.');
+    delay(1000);
+  }
+  Serial.println(WiFi.localIP());
+}
 
 // void initMQTT()
 // {
