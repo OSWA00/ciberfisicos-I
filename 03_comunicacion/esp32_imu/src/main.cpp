@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
-// #include <PubSubClient.h>
+#include <PubSubClient.h>
 #include <IMU.h>
 
 #define DT 0.25
@@ -25,10 +25,12 @@ float kalmanFilterY(float accAngle, float gyroRate);
 
 #define SSID "equipo_1"
 #define PASSWORD "password"
-// #define MQTT_SERVER "YOUR_MQTT_BROKER_IP_ADDRESS"
+#define MQTT_SERVER "192.168.4.1"
 
-// WiFiClient espClient;
-// PubSubClient client(espClient);
+#define LEDPIN 2
+
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 byte buff[6];
 int accRaw[3];
@@ -48,8 +50,9 @@ float CFangleY = 0.0;
 unsigned long startTime;
 
 void initWiFi();
-// void callback(char *topic, byte *message, unsigned int length);
-// void initMQTT();
+void callback(char *topic, byte *message, unsigned int length);
+void initMQTT();
+void reconnect();
 
 void setup()
 {
@@ -57,13 +60,21 @@ void setup()
   Serial.begin(115200);
 
   initWiFi();
-  // initMQTT();
+  initMQTT();
+
+  pinMode(LEDPIN, OUTPUT);
 
   enableIMU(); // Enable I2C IMU
 }
 
 void loop()
 {
+
+  if (!client.connected())
+  {
+    reconnect();
+  }
+  client.loop();
 
   // put your main code here, to run repeatedly:
   startTime = millis();
@@ -108,11 +119,13 @@ void loop()
   float kalmanX = kalmanFilterX(AccXangle, rate_gyr_x);
   float kalmanY = kalmanFilterY(AccYangle, rate_gyr_y);
 
-  Serial.print("CFangleX: ");
-  Serial.println(kalmanX);
+  char kalman_x_string[8];
+  dtostrf(kalmanX, 1, 2, kalman_x_string);
+  client.publish("/ESP32/kalman_x", kalman_x_string);
 
-  Serial.print("CFangleY: ");
-  Serial.println(kalmanY);
+  char kalman_y_string[8];
+  dtostrf(kalmanY, 1, 2, kalman_y_string);
+  client.publish("/ESP32/kalman_y", kalman_y_string);
 
   // Complementary filter used to combine the accelerometer and gyro values.
   // CFangleX = AA * (CFangleX + rate_gyr_x * DT) + (1 - AA) * AccXangle;
@@ -121,13 +134,13 @@ void loop()
   // Compute heading
   float heading = 180 * atan2(magRaw[1], magRaw[0]) / M_PI;
 
-  // Convert heading to 0 - 360
   if (heading < 0)
     heading += 360;
-  Serial.print("Heading: ");
-  Serial.println(heading);
 
-  // Normalize accelerometer raw values.
+  char headingString[8];
+  dtostrf(heading, 1, 2, headingString);
+  client.publish("/ESP32/heading", headingString);
+
   float accXnorm = accRaw[0] / sqrt(accRaw[0] * accRaw[0] + accRaw[1] * accRaw[1] + accRaw[2] * accRaw[2]);
   float accYnorm = accRaw[1] / sqrt(accRaw[0] * accRaw[0] + accRaw[1] * accRaw[1] + accRaw[2] * accRaw[2]);
 
@@ -138,15 +151,15 @@ void loop()
   float magXcomp = magRaw[0] * cos(pitch) - magRaw[2] * sin(pitch);
   float magYcomp = magRaw[0] * sin(roll) * sin(pitch) + magRaw[1] * cos(roll) + magRaw[2] * sin(roll) * cos(pitch);
 
-  heading = 180 * atan2(magYcomp, magXcomp) / M_PI;
+  float compensated_heading = 180 * atan2(magYcomp, magXcomp) / M_PI;
 
   // Convert heading to 0 - 360
-  if (heading < 0)
-    heading += 360;
+  if (compensated_heading < 0)
+    compensated_heading += 360;
 
-  printf("Compensated  Heading %7.3f  \n", heading);
-
-
+  char compensated_string[8];
+  dtostrf(compensated_heading, 1, 2, compensated_string);
+  client.publish("/ESP32/compensated_heading", compensated_string);
 
   // Each loop should be at least 20ms.
   while (millis() - startTime < (DT * 1000))
@@ -168,26 +181,35 @@ void initWiFi()
   Serial.println(WiFi.localIP());
 }
 
-// void initMQTT()
-// {
-//   client.setServer(MQTT_SERVER, 1883);
-//   client.setCallback(callback);
-// }
+void initMQTT()
+{
+  client.setServer(MQTT_SERVER, 1883);
+  client.setCallback(callback);
+}
 
-// void callback(char *topic, byte *message, unsigned int length)
-// {
-//   Serial.print("Message arrived on topic: ");
-//   Serial.print(topic);
-//   Serial.print(". Message: ");
-//   String messageTemp;
+void callback(char *topic, byte *message, unsigned int length)
+{
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
 
-//   for (int i = 0; i < length; i++)
-//   {
-//     Serial.print((char)message[i]);
-//     messageTemp += (char)message[i];
-//   }
-//   Serial.println();
-// }
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  Serial.println();
+
+  if (messageTemp == "0")
+  {
+    digitalWrite(LEDPIN, HIGH);
+  }
+  else if (messageTemp == "1")
+  {
+    digitalWrite(LEDPIN, LOW);
+  }
+}
 
 float kalmanFilterX(float accAngle, float gyroRate)
 {
@@ -241,4 +263,28 @@ float kalmanFilterY(float accAngle, float gyroRate)
   YP_11 -= K_1 * YP_01;
 
   return KFangleY;
+}
+
+void reconnect()
+{
+  // Loop until we're reconnected
+  while (!client.connected())
+  {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("ESP32"))
+    {
+      Serial.println("connected");
+      // Subscribe
+      client.subscribe("/CONTROL/LED");
+    }
+    else
+    {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
 }
