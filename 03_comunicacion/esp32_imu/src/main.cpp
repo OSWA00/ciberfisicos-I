@@ -1,9 +1,18 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
 #include <IMU.h>
 
 #define DT 0.02
 #define AA 0.97
 #define G_GAIN 0.070
+
+#define SSID "equipo_1"
+#define PASSWORD "password"
+#define MQTT_SERVER "YOUR_MQTT_BROKER_IP_ADDRESS"
+
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 byte buff[6];
 int accRaw[3];
@@ -22,10 +31,16 @@ float CFangleY = 0.0;
 
 unsigned long startTime;
 
+void initWiFi();
+void callback(char *topic, byte *message, unsigned int length);
+void initMQTT();
+
 void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  initWiFi();
+  initMQTT();
   delay(500);
   detectIMU();
   enableIMU();
@@ -109,4 +124,38 @@ void loop()
     delay(1);
   }
   Serial.println(millis() - startTime);
+}
+
+void initWiFi()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASSWORD);
+  Serial.print("Connecting to WiFi ..");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print('.');
+    delay(1000);
+  }
+  Serial.println(WiFi.localIP());
+}
+
+void initMQTT()
+{
+  client.setServer(MQTT_SERVER, 1883);
+  client.setCallback(callback);
+}
+
+void callback(char *topic, byte *message, unsigned int length)
+{
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
+
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  Serial.println();
 }
