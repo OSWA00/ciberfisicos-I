@@ -3,7 +3,7 @@
 #include <PubSubClient.h>
 #include <IMU.h>
 
-#define DT 0.25
+#define DT 0.700
 #define AA 0.97
 
 #define A_GAIN 0.0573
@@ -27,7 +27,7 @@ float kalmanFilterY(float accAngle, float gyroRate);
 #define PASSWORD "password"
 #define MQTT_SERVER "192.168.4.1"
 
-#define LEDPIN 2
+#define LED 2
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -62,7 +62,7 @@ void setup()
   initWiFi();
   initMQTT();
 
-  pinMode(2, OUTPUT); // Set led as output
+  pinMode(LED, OUTPUT); // Set led as output
 
   enableIMU(); // Enable I2C IMU
 }
@@ -203,17 +203,17 @@ void callback(char *topic, byte *message, unsigned int length)
 
   if (messageTemp == String("0"))
   {
-    digitalWrite(LEDPIN, HIGH);
+    digitalWrite(LED, HIGH);
   }
   else if (messageTemp == String("1"))
   {
-    digitalWrite(LEDPIN, LOW);
+    digitalWrite(LED, LOW);
   }
 }
 
 float kalmanFilterX(float accAngle, float gyroRate)
 {
-  digitalWrite(LEDPIN, HIGH);
+  float y,S;
   float K_0, K_1;
 
   KFangleX += DT * (gyroRate - x_bias);
