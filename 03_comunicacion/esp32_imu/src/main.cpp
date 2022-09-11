@@ -3,7 +3,7 @@
 #include <PubSubClient.h>
 #include <IMU.h>
 
-#define DT 0.25
+#define DT 0.700
 #define AA 0.97
 
 #define A_GAIN 0.0573
@@ -27,7 +27,7 @@ float kalmanFilterY(float accAngle, float gyroRate);
 #define PASSWORD "password"
 #define MQTT_SERVER "192.168.4.1"
 
-#define LEDPIN 2
+#define LED 2
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -59,12 +59,11 @@ void setup()
   // put your setup code here, to run once:
   Serial.begin(115200);
 
-  initWiFi();
-  initMQTT();
+  initWiFi(); // Enable wifi connection
+  initMQTT(); // Enable MQTT
 
-  pinMode(2, OUTPUT); // Set led as output
-
-  enableIMU(); // Enable I2C IMU
+  pinMode(LED, OUTPUT); // Enable LED as output
+  enableIMU(); // Enable i2c registers of IMU
 }
 
 void loop()
@@ -127,11 +126,7 @@ void loop()
   dtostrf(kalmanY, 1, 2, kalman_y_string);
   client.publish("/ESP32/kalman_y", kalman_y_string);
 
-  // Complementary filter used to combine the accelerometer and gyro values.
-  // CFangleX = AA * (CFangleX + rate_gyr_x * DT) + (1 - AA) * AccXangle;
-  // CFangleY = AA * (CFangleY + rate_gyr_y * DT) + (1 - AA) * AccYangle;
-
-  // Compute heading
+  // Compute raw heading
   float heading = 180 * atan2(magRaw[1], magRaw[0]) / M_PI;
 
   if (heading < 0)
@@ -141,6 +136,7 @@ void loop()
   dtostrf(heading, 1, 2, headingString);
   client.publish("/ESP32/heading", headingString);
 
+  // Compensated heading
   float accXnorm = accRaw[0] / sqrt(accRaw[0] * accRaw[0] + accRaw[1] * accRaw[1] + accRaw[2] * accRaw[2]);
   float accYnorm = accRaw[1] / sqrt(accRaw[0] * accRaw[0] + accRaw[1] * accRaw[1] + accRaw[2] * accRaw[2]);
 
@@ -203,17 +199,17 @@ void callback(char *topic, byte *message, unsigned int length)
 
   if (messageTemp == String("0"))
   {
-    digitalWrite(LEDPIN, HIGH);
+    digitalWrite(LED, HIGH);
   }
   else if (messageTemp == String("1"))
   {
-    digitalWrite(LEDPIN, LOW);
+    digitalWrite(LED, LOW);
   }
 }
 
 float kalmanFilterX(float accAngle, float gyroRate)
 {
-  digitalWrite(LEDPIN, HIGH);
+  float y,S;
   float K_0, K_1;
 
   KFangleX += DT * (gyroRate - x_bias);
